@@ -204,21 +204,11 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   // Set physical scale
   png_set_sCAL(png_handler.png_ptr, png_handler.info_ptr, PNG_SCALE_METER, 1.0, 1.0);
 
-  // Set up background compositing
-  png_color_16 background;
-  background.red = 255;    // White background
-  background.green = 255;
-  background.blue = 255;
-  background.gray = 255;   // Used for grayscale images
-  png_set_background(png_handler.png_ptr, &background,
-                    PNG_BACKGROUND_GAMMA_SCREEN, 0, 1.0);
-
 #ifdef PNG_iCCP_SUPPORTED
   // Try to get ICC profile if it exists
   png_charp name;
   png_bytep profile;
   png_uint_32 proflen;
-  int compression_type;
   if (png_get_iCCP(png_handler.png_ptr, png_handler.info_ptr,
                    &name, &compression_type, &profile, &proflen)) {
     // Successfully got ICC profile information

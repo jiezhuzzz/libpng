@@ -185,14 +185,78 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   background.gray = 255;   // Used for grayscale images
   png_set_background(png_handler.png_ptr, &background,
                     PNG_BACKGROUND_GAMMA_SCREEN, 0, 1.0);
-  
-  // Set several transforms that browsers typically use:
+
+  // Set up transformations before reading
   png_set_gray_to_rgb(png_handler.png_ptr);
   png_set_rgb_to_gray(png_handler.png_ptr, 1, -1, -1); // Convert RGB to grayscale
-  // png_set_expand(png_handler.png_ptr);
-  // png_set_packing(png_handler.png_ptr);
-  // png_set_scale_16(png_handler.png_ptr);
-  // png_set_tRNS_to_alpha(png_handler.png_ptr);
+  png_set_filler(png_handler.png_ptr, 0xff, PNG_FILLER_AFTER); // Add alpha channel after RGB
+
+  // Set up quantization
+  png_color palette[256];
+  int num_palette = 256;
+  png_uint_16 hist[256];
+  for(int i = 0; i < 256; i++) {
+    palette[i].red = palette[i].green = palette[i].blue = i;
+    hist[i] = 1;
+  }
+  png_set_quantize(png_handler.png_ptr, palette, num_palette, 256, hist, 0);
+
+  // Set physical scale
+  png_set_sCAL(png_handler.png_ptr, png_handler.info_ptr, PNG_SCALE_METER, 1.0, 1.0);
+
+  // Set up background compositing
+  png_color_16 background;
+  background.red = 255;    // White background
+  background.green = 255;
+  background.blue = 255;
+  background.gray = 255;   // Used for grayscale images
+  png_set_background(png_handler.png_ptr, &background,
+                    PNG_BACKGROUND_GAMMA_SCREEN, 0, 1.0);
+
+#ifdef PNG_iCCP_SUPPORTED
+  // Try to get ICC profile if it exists
+  png_charp name;
+  png_bytep profile;
+  png_uint_32 proflen;
+  int compression_type;
+  if (png_get_iCCP(png_handler.png_ptr, png_handler.info_ptr,
+                   &name, &compression_type, &profile, &proflen)) {
+    // Successfully got ICC profile information
+  }
+#endif
+
+#ifdef PNG_iTXt_SUPPORTED
+  // Try to get international text data if it exists
+  png_textp text_ptr;
+  int num_text;
+  if (png_get_text(png_handler.png_ptr, png_handler.info_ptr,
+                   &text_ptr, &num_text) > 0) {
+    for (int i = 0; i < num_text; i++) {
+      if (text_ptr[i].compression == PNG_ITXT_COMPRESSION_NONE ||
+          text_ptr[i].compression == PNG_ITXT_COMPRESSION_zTXt) {
+        // Found international text
+        // text_ptr[i].lang holds the language
+        // text_ptr[i].lang_key holds the keyword in UTF-8
+        // text_ptr[i].text holds the text in UTF-8
+      }
+    }
+  }
+#endif
+
+#ifdef PNG_pCAL_SUPPORTED
+  // Try to get pCAL chunk information if it exists
+  png_charp purpose, units;
+  png_charpp params;
+  png_int_32 X0, X1;
+  int type, nparams;
+  if (png_get_pCAL(png_handler.png_ptr, png_handler.info_ptr,
+                   &purpose, &X0, &X1, &type, &nparams,
+                   &units, &params)) {
+    // Successfully got pCAL information
+    // In a real application, we might use these values
+    // For fuzzing, just reading them is enough to test the handling
+  }
+#endif
 
   int passes = png_set_interlace_handling(png_handler.png_ptr);
 

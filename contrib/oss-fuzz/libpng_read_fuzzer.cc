@@ -177,13 +177,22 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     PNG_CLEANUP
     return 0;
   }
-
+  // Set up background compositing
+  png_color_16 background;
+  background.red = 255;    // White background
+  background.green = 255;
+  background.blue = 255;
+  background.gray = 255;   // Used for grayscale images
+  png_set_background(png_handler.png_ptr, &background,
+                    PNG_BACKGROUND_GAMMA_SCREEN, 0, 1.0);
+  
   // Set several transforms that browsers typically use:
   png_set_gray_to_rgb(png_handler.png_ptr);
-  png_set_expand(png_handler.png_ptr);
-  png_set_packing(png_handler.png_ptr);
-  png_set_scale_16(png_handler.png_ptr);
-  png_set_tRNS_to_alpha(png_handler.png_ptr);
+  png_set_rgb_to_gray(png_handler.png_ptr, 1, -1, -1); // Convert RGB to grayscale
+  // png_set_expand(png_handler.png_ptr);
+  // png_set_packing(png_handler.png_ptr);
+  // png_set_scale_16(png_handler.png_ptr);
+  // png_set_tRNS_to_alpha(png_handler.png_ptr);
 
   int passes = png_set_interlace_handling(png_handler.png_ptr);
 

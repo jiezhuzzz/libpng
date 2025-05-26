@@ -31,8 +31,7 @@ cat scripts/pnglibconf.dfa | \
 mv scripts/pnglibconf.dfa.temp scripts/pnglibconf.dfa
 
 # build the libpng library.
-autoreconf -f -i
-./configure --with-libpng-prefix=OSS_FUZZ_
+./configure --disable-shared
 make -j$(nproc) clean
 make -j$(nproc) libpng16.la
 
